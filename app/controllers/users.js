@@ -1,18 +1,32 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/users");
+const Question = require("../models/question");
 const { secretKey } = require("../config");
 class UsersCtl {
   async find(ctx) {
-    ctx.body = await User.find();
+    let { page, pageNum = 10 } = ctx.query;
+    page = Math.max(page, 1) - 1;
+    pageNum = Math.max(pageNum, 1);
+    ctx.body = await User.find()
+      .limit(pageNum)
+      .skip(page * pageNum)
+      .populate(
+        "locations business employment.company employment.job educations.school educations.major"
+      );
   }
   async findById(ctx) {
-    let files = ctx.query.files
+    let { files } = ctx.query;
+    files = files
       .split(";")
       .filter((f) => f)
       .map((f) => " +" + f)
       .join("");
     console.log(files);
-    const user = await User.findById(ctx.params.id).select(files);
+    const user = await User.findById(ctx.params.id)
+      .select(files)
+      .populate(
+        "locations business employment.company employment.job educations.school educations.major"
+      );
     if (!user) {
       ctx.throw(404, "用户不存在");
     }
@@ -109,6 +123,11 @@ class UsersCtl {
   async getFans(ctx) {
     const user = await User.find({ following: ctx.params.id });
     ctx.body = user;
+  }
+  // 获取用户问题
+  async getQuestion(ctx) {
+    const question = await Question.find({ questioner: ctx.state.user.id });
+    ctx.body = question;
   }
 }
 

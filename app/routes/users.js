@@ -32,6 +32,7 @@ const {
   followUsers,
   unfollowUsers,
   getFans,
+  getQuestion,
 } = require("../controllers/users");
 
 // 获取所有用户
@@ -63,5 +64,8 @@ router.delete("/unFollowUsers/:id", auto, userIsExist, unfollowUsers);
 
 // 获取粉丝
 router.get("/fands/:id", userIsExist, getFans);
+
+// 获取问题
+router.post("/getQuestion", auto, getQuestion);
 
 module.exports = router;
