@@ -6,7 +6,13 @@ class UsersCtl {
     ctx.body = await User.find();
   }
   async findById(ctx) {
-    const user = await User.findById(ctx.params.id);
+    let files = ctx.query.files
+      .split(";")
+      .filter((f) => f)
+      .map((f) => " +" + f)
+      .join("");
+    console.log(files);
+    const user = await User.findById(ctx.params.id).select(files);
     if (!user) {
       ctx.throw(404, "用户不存在");
     }
@@ -29,6 +35,13 @@ class UsersCtl {
     ctx.verifyParams({
       name: { type: "string", required: false },
       password: { type: "string", required: false },
+      avatar_url: { type: "string", required: false },
+      gender: { type: "string", required: false },
+      headline: { type: "string", required: false },
+      locations: { type: "array", itemType: "string", required: false },
+      business: { type: "string", required: false },
+      employment: { type: "array", itemType: "object", required: false },
+      educations: { type: "array", itemType: "object", required: false },
     });
     const user = await User.findByIdAndUpdate(ctx.params.id, ctx.request.body);
     if (!user) {
@@ -59,6 +72,43 @@ class UsersCtl {
       token: signKeys,
       code: "00000",
     };
+  }
+  // 获取用户关注列表
+  async following(ctx) {
+    const user = await User.findById(ctx.params.id)
+      .select("+following")
+      .populate("following");
+    if (!user) {
+      ctx.throw(404);
+    }
+    ctx.body = user.following;
+  }
+
+  // 关注用户
+  async followUsers(ctx) {
+    const user = await User.findById(ctx.state.user.id).select("+following");
+    if (!user.following.map((id) => id.toString()).includes(ctx.params.id)) {
+      user.following.push(ctx.params.id);
+      user.save();
+    }
+    ctx.status = 204;
+  }
+
+  // 取消关注
+  async unfollowUsers(ctx) {
+    const user = await User.findById(ctx.state.user.id).select("+following");
+    let index = user.following.indexOf(ctx.params.id);
+    if (index > -1) {
+      user.following.splice(index, 1);
+      user.save();
+    }
+    ctx.status = 204;
+  }
+
+  // 获取粉丝
+  async getFans(ctx) {
+    const user = await User.find({ following: ctx.params.id });
+    ctx.body = user;
   }
 }
 
